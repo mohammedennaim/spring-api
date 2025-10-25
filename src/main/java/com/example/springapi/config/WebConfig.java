@@ -1,5 +1,6 @@
 package com.example.springapi.config;
 
+import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.MediaType;
 import org.springframework.http.converter.HttpMessageConverter;
@@ -11,6 +12,7 @@ import java.util.List;
 
 @Configuration
 @EnableWebMvc
+@ComponentScan(basePackages = "com.example.springapi.controller")
 public class WebConfig implements WebMvcConfigurer {
     
     @Override
