@@ -4,6 +4,7 @@ import jakarta.persistence.EntityManagerFactory;
 import org.apache.commons.dbcp2.BasicDataSource;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.*;
+import org.springframework.context.support.PropertySourcesPlaceholderConfigurer;
 import org.springframework.orm.jpa.*;
 import org.springframework.orm.jpa.vendor.HibernateJpaVendorAdapter;
 import org.springframework.transaction.annotation.EnableTransactionManagement;
@@ -16,7 +17,14 @@ import java.util.Properties;
 @EnableTransactionManagement
 
 @PropertySource("classpath:application.properties")
+@PropertySource(value = "classpath:application-${spring.profiles.active}.properties", ignoreResourceNotFound = true)
 public class AppConfig {
+
+    @Bean
+    public static PropertySourcesPlaceholderConfigurer propertySourcesPlaceholderConfigurer() {
+        // Enables resolution of ${...} placeholders in @Value annotations
+        return new PropertySourcesPlaceholderConfigurer();
+    }
     
     @Value("${spring.datasource.url:jdbc:postgresql://db:5432/spring_db}")
     private String dbUrl;
@@ -30,7 +38,7 @@ public class AppConfig {
     @Value("${spring.jpa.hibernate.ddl-auto:update}")
     private String hibernateDdlAuto;
     
-    @Value("${spring.jpa.show-sql}")
+    @Value("${spring.jpa.show-sql:false}")
     private boolean showSql;
     
     @Bean
