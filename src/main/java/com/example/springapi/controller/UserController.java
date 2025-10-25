@@ -13,7 +13,7 @@ public class UserController {
     private final UserService service;
     public UserController(UserService s){this.service=s;}
 
-    @GetMapping("/getAll")
+    @GetMapping
     public List<User> all(){return service.getAll();}
     @GetMapping("/{id}") 
     public User one(@PathVariable("id") Long id){
