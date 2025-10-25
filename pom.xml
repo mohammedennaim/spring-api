@@ -97,19 +97,6 @@
       <scope>provided</scope>
     </dependency>
 
-    <!-- Tomcat Embed -->
-    <dependency>
-      <groupId>org.apache.tomcat.embed</groupId>
-      <artifactId>tomcat-embed-core</artifactId>
-      <version>10.1.15</version>
-    </dependency>
-    
-    <dependency>
-      <groupId>org.apache.tomcat.embed</groupId>
-      <artifactId>tomcat-embed-jasper</artifactId>
-      <version>10.1.15</version>
-    </dependency>
-
     <!-- Jakarta Persistence API -->
     <dependency>
       <groupId>jakarta.persistence</groupId>
