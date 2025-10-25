@@ -4,6 +4,7 @@ import jakarta.persistence.EntityManagerFactory;
 import org.apache.commons.dbcp2.BasicDataSource;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.*;
+import org.springframework.context.support.PropertySourcesPlaceholderConfigurer;
 import org.springframework.orm.jpa.*;
 import org.springframework.orm.jpa.vendor.HibernateJpaVendorAdapter;
 import org.springframework.transaction.annotation.EnableTransactionManagement;
@@ -14,8 +15,8 @@ import java.util.Properties;
 @Configuration
 @ComponentScan(basePackages="com.example.springapi")
 @EnableTransactionManagement
-
 @PropertySource("classpath:application.properties")
+@PropertySource(value = "classpath:application-${spring.profiles.active:default}.properties", ignoreResourceNotFound = true)
 public class AppConfig {
     
     @Value("${spring.datasource.url:jdbc:postgresql://db:5432/spring_db}")
@@ -32,6 +33,14 @@ public class AppConfig {
     
     @Value("${spring.jpa.show-sql}")
     private boolean showSql;
+    
+    @Bean
+    public static PropertySourcesPlaceholderConfigurer propertySourcesPlaceholderConfigurer() {
+        PropertySourcesPlaceholderConfigurer configurer = new PropertySourcesPlaceholderConfigurer();
+        configurer.setIgnoreUnresolvablePlaceholders(true);
+        configurer.setIgnoreResourceNotFound(true);
+        return configurer;
+    }
     
     @Bean
     public DataSource dataSource() {
