@@ -178,3 +178,4 @@ Le projet utilise Logback avec :
 ## Licence
 
 Ce projet est sous licence MIT.
+

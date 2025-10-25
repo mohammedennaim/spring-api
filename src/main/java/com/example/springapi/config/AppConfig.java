@@ -7,32 +7,41 @@ import org.springframework.context.annotation.*;
 import org.springframework.orm.jpa.*;
 import org.springframework.orm.jpa.vendor.HibernateJpaVendorAdapter;
 import org.springframework.transaction.annotation.EnableTransactionManagement;
+import org.springframework.context.support.PropertySourcesPlaceholderConfigurer;
 
 import javax.sql.DataSource;
 import java.util.Properties;
 
 @Configuration
-@ComponentScan(basePackages="com.example.springapi")
+@ComponentScan(basePackages={"com.example.springapi.repository", "com.example.springapi.service"})
 @EnableTransactionManagement
-
 @PropertySource("classpath:application.properties")
+@PropertySource(value = "classpath:application-default.properties", ignoreResourceNotFound = true)
 public class AppConfig {
-    
+
     @Value("${spring.datasource.url:jdbc:postgresql://db:5432/spring_db}")
     private String dbUrl;
-    
+
     @Value("${spring.datasource.username:user}")
     private String dbUsername;
-    
+
     @Value("${spring.datasource.password:password}")
     private String dbPassword;
-    
+
     @Value("${spring.jpa.hibernate.ddl-auto:update}")
     private String hibernateDdlAuto;
-    
+
     @Value("${spring.jpa.show-sql}")
     private boolean showSql;
-    
+
+    @Bean
+    public static PropertySourcesPlaceholderConfigurer propertySourcesPlaceholderConfigurer() {
+        PropertySourcesPlaceholderConfigurer configurer = new PropertySourcesPlaceholderConfigurer();
+        configurer.setIgnoreUnresolvablePlaceholders(true);
+        configurer.setIgnoreResourceNotFound(true);
+        return configurer;
+    }
+
     @Bean
     public DataSource dataSource() {
         BasicDataSource ds = new BasicDataSource();
@@ -40,7 +49,7 @@ public class AppConfig {
         ds.setUrl(dbUrl);
         ds.setUsername(dbUsername);
         ds.setPassword(dbPassword);
-        
+
         // Configuration du pool de connexions
         ds.setInitialSize(5);
         ds.setMaxTotal(20);
@@ -51,7 +60,7 @@ public class AppConfig {
         ds.setTestOnBorrow(true);
         ds.setTestWhileIdle(true);
         ds.setTimeBetweenEvictionRunsMillis(30000);
-        
+
         return ds;
     }
 
@@ -61,7 +70,7 @@ public class AppConfig {
         emf.setDataSource(dataSource);
         emf.setPackagesToScan("com.example.springapi.model");
         emf.setJpaVendorAdapter(new HibernateJpaVendorAdapter());
-        
+
         Properties jpaProperties = new Properties();
         jpaProperties.put("hibernate.hbm2ddl.auto", hibernateDdlAuto);
         jpaProperties.put("hibernate.dialect", "org.hibernate.dialect.PostgreSQLDialect");
@@ -72,9 +81,9 @@ public class AppConfig {
         jpaProperties.put("hibernate.order_inserts", true);
         jpaProperties.put("hibernate.order_updates", true);
         jpaProperties.put("hibernate.jdbc.batch_versioned_data", true);
-        
+
         emf.setJpaProperties(jpaProperties);
-        
+
         return emf;
     }
 
