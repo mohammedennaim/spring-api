@@ -13,6 +13,9 @@ public class UserController {
     private final UserService service;
     public UserController(UserService s){this.service=s;}
 
+    @GetMapping
+    public List<User> getAllUsers(){return service.getAll();}
+    
     @GetMapping("/getAll")
     public List<User> all(){return service.getAll();}
     @GetMapping("/{id}") 
