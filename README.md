@@ -21,8 +21,6 @@ src/
 │   │   │   └── persistence.xml         # Configuration JPA
 │   │   ├── application.properties      # Configuration principale
 │   │   ├── application-docker.properties # Configuration Docker
-│   │   ├── beans.xml                   # Configuration XML Spring
-│   │   ├── logback-spring.xml          # Configuration logging
 │   │   └── messages.properties         # Messages internationaux
 │   └── webapp/
 │       └── WEB-INF/
@@ -136,14 +134,6 @@ Le projet utilise Apache Commons DBCP2 avec les paramètres suivants :
 - Taille maximale des connexions inactives: 10
 - Taille minimale des connexions inactives: 5
 - Timeout d'attente: 60 secondes
-
-### Logging
-
-Le projet utilise Logback avec :
-
-- Logs console pour le développement
-- Logs fichiers avec rotation automatique
-- Configuration différente selon le profil
 
 ### Performance
 
