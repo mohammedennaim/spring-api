@@ -1,7 +1,7 @@
 package com.example.springapi.service.impl;
 import com.example.springapi.model.User;
 import com.example.springapi.repository.IUserRepository;
-import com.example.springapi.service.UserService;
+import com.example.springapi.service.IUserService;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import java.util.List;
@@ -10,7 +10,7 @@ import java.util.Optional;
 
 @Service
 @Transactional
-public class UserServiceImpl implements UserService {
+public class UserServiceImpl implements IUserService {
     
     private final IUserRepository repository;
     

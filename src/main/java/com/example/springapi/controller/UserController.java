@@ -1,7 +1,7 @@
 package com.example.springapi.controller;
 import com.example.springapi.model.User;
 import com.example.springapi.model.ApiResponse;
-import com.example.springapi.service.UserService;
+import com.example.springapi.service.IUserService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -13,8 +13,8 @@ import java.util.NoSuchElementException;
 @CrossOrigin
 public class UserController {
 
-    private final UserService service;
-    public UserController(UserService s){this.service=s;}
+    private final IUserService service;
+    public UserController(IUserService s){this.service=s;}
 
     @GetMapping
     public ResponseEntity<ApiResponse<List<User>>> getAllUsers(){

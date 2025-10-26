@@ -1,7 +1,7 @@
 package com.example.springapi.controller;
 
 import com.example.springapi.model.User;
-import com.example.springapi.service.UserService;
+import com.example.springapi.service.IUserService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.Before;
 import org.junit.Test;
@@ -14,6 +14,7 @@ import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
 import java.util.Arrays;
 import java.util.List;
+import java.util.NoSuchElementException;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
@@ -25,7 +26,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 public class UserControllerTest {
 
     @Mock
-    private UserService userService;
+    private IUserService userService;
 
     private MockMvc mockMvc;
     private ObjectMapper objectMapper;
@@ -33,22 +34,21 @@ public class UserControllerTest {
     @Before
     public void setUp() {
         MockitoAnnotations.openMocks(this);
-        mockMvc = MockMvcBuilders.standaloneSetup(new UserController(userService)).build();
+        UserController controller = new UserController(userService);
+        GlobalExceptionHandler exceptionHandler = new GlobalExceptionHandler();
+        mockMvc = MockMvcBuilders.standaloneSetup(controller)
+                .setControllerAdvice(exceptionHandler)
+                .build();
         objectMapper = new ObjectMapper();
     }
 
     @Test
-    public void testGetAllUsers() throws Exception {
+    public void testGetAllUsers_Success() throws Exception {
         // Given
-        User user1 = new User();
+        User user1 = new User("John Doe", "john@example.com");
         user1.setId(1L);
-        user1.setFullName("John Doe");
-        user1.setEmail("john@example.com");
-
-        User user2 = new User();
+        User user2 = new User("Jane Doe", "jane@example.com");
         user2.setId(2L);
-        user2.setFullName("Jane Doe");
-        user2.setEmail("jane@example.com");
 
         List<User> users = Arrays.asList(user1, user2);
         when(userService.getAll()).thenReturn(users);
@@ -57,42 +57,52 @@ public class UserControllerTest {
         mockMvc.perform(get("/api/users"))
                 .andExpect(status().isOk())
                 .andExpect(content().contentType(MediaType.APPLICATION_JSON))
-                .andExpect(jsonPath("$").isArray())
-                .andExpect(jsonPath("$[0].id").value(1))
-                .andExpect(jsonPath("$[0].fullName").value("John Doe"))
-                .andExpect(jsonPath("$[0].email").value("john@example.com"));
+                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.message").value("Utilisateurs récupérés avec succès"))
+                .andExpect(jsonPath("$.data").isArray())
+                .andExpect(jsonPath("$.data[0].id").value(1))
+                .andExpect(jsonPath("$.data[0].fullName").value("John Doe"))
+                .andExpect(jsonPath("$.data[0].email").value("john@example.com"));
     }
 
     @Test
-    public void testGetUserById() throws Exception {
+    public void testGetUserById_Success() throws Exception {
         // Given
-        User user = new User();
+        User user = new User("John Doe", "john@example.com");
         user.setId(1L);
-        user.setFullName("John Doe");
-        user.setEmail("john@example.com");
-
         when(userService.getById(1L)).thenReturn(user);
 
         // When & Then
         mockMvc.perform(get("/api/users/1"))
                 .andExpect(status().isOk())
                 .andExpect(content().contentType(MediaType.APPLICATION_JSON))
-                .andExpect(jsonPath("$.id").value(1))
-                .andExpect(jsonPath("$.fullName").value("John Doe"))
-                .andExpect(jsonPath("$.email").value("john@example.com"));
+                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.message").value("Utilisateur récupéré avec succès"))
+                .andExpect(jsonPath("$.data.id").value(1))
+                .andExpect(jsonPath("$.data.fullName").value("John Doe"))
+                .andExpect(jsonPath("$.data.email").value("john@example.com"));
     }
 
     @Test
-    public void testCreateUser() throws Exception {
+    public void testGetUserById_NotFound() throws Exception {
         // Given
-        User user = new User();
-        user.setFullName("John Doe");
-        user.setEmail("john@example.com");
+        when(userService.getById(999L)).thenThrow(new NoSuchElementException("Utilisateur non trouvé avec l'ID: 999"));
 
-        User savedUser = new User();
+        // When & Then
+        mockMvc.perform(get("/api/users/999"))
+                .andExpect(status().isNotFound())
+                .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+                .andExpect(jsonPath("$.success").value(false))
+                .andExpect(jsonPath("$.message").value("Utilisateur non trouvé"))
+                .andExpect(jsonPath("$.error").value("Aucun utilisateur trouvé avec l'ID: 999"));
+    }
+
+    @Test
+    public void testCreateUser_Success() throws Exception {
+        // Given
+        User user = new User("John Doe", "john@example.com");
+        User savedUser = new User("John Doe", "john@example.com");
         savedUser.setId(1L);
-        savedUser.setFullName("John Doe");
-        savedUser.setEmail("john@example.com");
 
         when(userService.save(any(User.class))).thenReturn(savedUser);
 
@@ -102,19 +112,35 @@ public class UserControllerTest {
                 .content(objectMapper.writeValueAsString(user)))
                 .andExpect(status().isCreated())
                 .andExpect(content().contentType(MediaType.APPLICATION_JSON))
-                .andExpect(jsonPath("$.id").value(1))
-                .andExpect(jsonPath("$.fullName").value("John Doe"))
-                .andExpect(jsonPath("$.email").value("john@example.com"));
+                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.message").value("Utilisateur créé avec succès"))
+                .andExpect(jsonPath("$.data.id").value(1))
+                .andExpect(jsonPath("$.data.fullName").value("John Doe"))
+                .andExpect(jsonPath("$.data.email").value("john@example.com"));
     }
 
     @Test
-    public void testUpdateUser() throws Exception {
+    public void testCreateUser_InvalidData() throws Exception {
         // Given
-        User user = new User();
-        user.setId(1L);
-        user.setFullName("John Doe Updated");
-        user.setEmail("john.updated@example.com");
+        User user = new User("", "john@example.com"); // Nom vide
 
+        // When & Then
+        mockMvc.perform(post("/api/users")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(user)))
+                .andExpect(status().isBadRequest())
+                .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+                .andExpect(jsonPath("$.success").value(false))
+                .andExpect(jsonPath("$.message").value("Données invalides"))
+                .andExpect(jsonPath("$.error").value("Le nom est obligatoire"));
+    }
+
+    @Test
+    public void testUpdateUser_Success() throws Exception {
+        // Given
+        User user = new User("John Updated", "john.updated@example.com");
+        user.setId(1L);
+        when(userService.getById(1L)).thenReturn(user);
         when(userService.save(any(User.class))).thenReturn(user);
 
         // When & Then
@@ -123,19 +149,26 @@ public class UserControllerTest {
                 .content(objectMapper.writeValueAsString(user)))
                 .andExpect(status().isOk())
                 .andExpect(content().contentType(MediaType.APPLICATION_JSON))
-                .andExpect(jsonPath("$.id").value(1))
-                .andExpect(jsonPath("$.fullName").value("John Doe Updated"))
-                .andExpect(jsonPath("$.email").value("john.updated@example.com"));
+                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.message").value("Utilisateur mis à jour avec succès"))
+                .andExpect(jsonPath("$.data.id").value(1))
+                .andExpect(jsonPath("$.data.fullName").value("John Updated"))
+                .andExpect(jsonPath("$.data.email").value("john.updated@example.com"));
     }
 
     @Test
-    public void testDeleteUser() throws Exception {
+    public void testDeleteUser_Success() throws Exception {
         // Given
-        // Mock the delete method (void method)
+        User user = new User("John Doe", "john@example.com");
+        user.setId(1L);
+        when(userService.getById(1L)).thenReturn(user);
         doNothing().when(userService).delete(1L);
 
         // When & Then
         mockMvc.perform(delete("/api/users/1"))
-                .andExpect(status().isOk());
+                .andExpect(status().isOk())
+                .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.message").value("Utilisateur supprimé avec succès"));
     }
 }
