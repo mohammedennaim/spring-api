@@ -12,19 +12,22 @@ src/
 │   │       └── example/
 │   │           └── springapi/
 │   │               ├── config/          # Configuration Spring
-│   │               ├── controller/      # Contrôleurs REST
-│   │               ├── model/           # Entités JPA
-│   │               ├── repository/      # Repositories
-│   │               └── service/         # Services métier
+│   │               ├── controller/      # Contrôleurs REST + Gestion d'erreurs
+│   │               ├── model/           # Entités JPA + Réponses API
+│   │               ├── repository/      # Interface + Implémentation Repository
+│   │               └── service/         # Interface + Implémentation Service
 │   ├── resources/
 │   │   ├── META-INF/
 │   │   │   └── persistence.xml         # Configuration JPA
 │   │   ├── application.properties      # Configuration principale
-│   │   ├── application-docker.properties # Configuration Docker
-│   │   └── messages.properties         # Messages internationaux
+│   │   └── application-docker.properties # Configuration Docker
 │   └── webapp/
 │       └── WEB-INF/
 │           └── web.xml                 # Configuration web.xml
+└── test/
+    ├── java/                           # Tests unitaires et d'intégration
+    └── resources/
+        └── application-test.properties # Configuration pour les tests
 ```
 
 ## Technologies utilisées
@@ -33,27 +36,73 @@ src/
 - **Spring Framework 6.1.5** (MVC, ORM, Context)
 - **Hibernate 6.4.0** (JPA Provider)
 - **PostgreSQL 16** (Base de données)
-- **Apache Commons DBCP2** (Pool de connexions)
+- **HikariCP** (Pool de connexions)
 - **Jackson** (Sérialisation JSON)
 - **Maven** (Gestion des dépendances)
 - **Docker & Docker Compose** (Conteneurisation)
+
+## Architecture du Projet
+
+### 🏗️ **Architecture en Couches**
+
+```
+┌─────────────────────────────────────────┐
+│              Controller                 │  ← REST API + Gestion d'erreurs
+├─────────────────────────────────────────┤
+│              Service                    │  ← Logique métier
+├─────────────────────────────────────────┤
+│         Repository Interface            │  ← Contrat de données
+├─────────────────────────────────────────┤
+│        Repository Implementation        │  ← Accès aux données (JPA)
+├─────────────────────────────────────────┤
+│              Database                   │  ← PostgreSQL
+└─────────────────────────────────────────┘
+```
+
+### 📁 **Structure Détaillée des Couches**
+
+#### **Controller Layer**
+- `UserController.java` - Endpoints REST avec réponses JSON
+- `GlobalExceptionHandler.java` - Gestion centralisée des erreurs
+
+#### **Service Layer**
+- `UserService.java` - Interface du service métier
+- `UserServiceImpl.java` - Implémentation avec validation et logique métier
+
+#### **Repository Layer**
+- `IUserRepository.java` - Interface Repository avec méthodes CRUD
+- `UserRepositoryImpl.java` - Implémentation JPA avec EntityManager
+
+#### **Model Layer**
+- `User.java` - Entité JPA
+- `ApiResponse.java` - Classe de réponse JSON standardisée
+
+### 🎯 **Avantages de l'Architecture**
+
+1. **Séparation des préoccupations** : Chaque couche a une responsabilité claire
+2. **Testabilité** : Interfaces mockables pour les tests unitaires
+3. **Maintenabilité** : Modifications isolées par couche
+4. **Évolutivité** : Ajout de nouvelles fonctionnalités facilité
+5. **Réutilisabilité** : Interfaces utilisables par plusieurs services
 
 ## Configuration
 
 ### Variables d'environnement
 
-Le projet utilise les variables d'environnement suivantes :
+Le projet utilise des variables d'environnement pour la configuration. **IMPORTANT** : Copiez `.env.example` vers `.env` et modifiez les valeurs sensibles :
 
-- `DB_NAME`: Nom de la base de données (défaut: spring_db)
-- `DB_USER`: Utilisateur de la base de données (défaut: user)
-- `DB_PASSWORD`: Mot de passe de la base de données (défaut: password)
-- `DB_HOST`: Hôte de la base de données (défaut: db)
-- `DB_PORT`: Port de la base de données (défaut: 5432)
+- `DATABASE_URL`: URL de connexion à la base de données
+- `DATABASE_USERNAME`: Nom d'utilisateur de la base de données
+- `DATABASE_PASSWORD`: Mot de passe de la base de données (⚠️ **CHANGER EN PRODUCTION**)
+- `SERVER_PORT`: Port du serveur (défaut: 8081)
+- `JPA_DDL_AUTO`: Mode de création des tables (défaut: update)
+- `JPA_SHOW_SQL`: Afficher les requêtes SQL (défaut: false)
 
 ### Profils Spring
 
 - **default**: Configuration pour le développement local
 - **docker**: Configuration pour l'environnement Docker
+- **test**: Configuration pour les tests (H2 en mémoire)
 
 ## Démarrage avec Docker
 
@@ -80,7 +129,7 @@ docker-compose logs -f app
 
 ### Services disponibles
 
-- **Application**: http://localhost:8080
+- **Application**: http://localhost:8081
 - **PostgreSQL**: localhost:5432
 - **PgAdmin**: http://localhost:5050 (admin@example.com / admin)
 
@@ -94,9 +143,20 @@ docker-compose logs -f app
 
 ### Configuration de la base de données
 
-1. Créer une base de données PostgreSQL nommée `spring_db`
-2. Créer un utilisateur `user` avec le mot de passe `password`
-3. Accorder les privilèges nécessaires à l'utilisateur
+1. **Copiez le fichier `.env.example` vers `.env` :**
+   ```bash
+   cp .env.example .env
+   ```
+
+2. **⚠️ IMPORTANT - Modifiez les valeurs sensibles dans `.env` :**
+   - Changez `DATABASE_PASSWORD` par un mot de passe fort
+   - Changez `PGADMIN_DEFAULT_PASSWORD` par un mot de passe sécurisé
+   - Adaptez `DATABASE_URL` selon votre configuration
+
+3. Créer une base de données PostgreSQL
+4. Accorder les privilèges nécessaires à l'utilisateur
+
+**🔒 Consultez `SECURITY.md` pour les bonnes pratiques de sécurité !**
 
 ### Commandes
 
@@ -123,23 +183,98 @@ mvn clean package
 - `PUT /api/users/{id}` - Met à jour un utilisateur
 - `DELETE /api/users/{id}` - Supprime un utilisateur
 
+### 📋 **Format des Réponses JSON**
+
+Toutes les opérations CRUD retournent des réponses JSON standardisées :
+
+```json
+{
+  "success": boolean,
+  "message": string,
+  "data": object | array | null,
+  "error": string | null
+}
+```
+
+#### **Exemple de Réponse de Succès**
+```json
+{
+  "success": true,
+  "message": "Utilisateur créé avec succès",
+  "data": {
+    "id": 1,
+    "fullName": "John Doe",
+    "email": "john@example.com"
+  },
+  "error": null
+}
+```
+
+#### **Exemple de Réponse d'Erreur**
+```json
+{
+  "success": false,
+  "message": "Utilisateur non trouvé",
+  "data": null,
+  "error": "Aucun utilisateur trouvé avec l'ID: 999"
+}
+```
+
+### 🛡️ **Gestion d'Erreurs**
+
+- **404** : Utilisateur non trouvé
+- **400** : Données invalides (nom ou email manquant)
+- **500** : Erreur interne du serveur
+- **Validation** : Vérification de l'unicité de l'email
+
+### 🧪 **Exemples d'Utilisation**
+
+#### **Créer un utilisateur**
+```bash
+curl -X POST http://localhost:8081/api/users \
+  -H "Content-Type: application/json" \
+  -d '{"fullName": "John Doe", "email": "john@example.com"}'
+```
+
+#### **Récupérer tous les utilisateurs**
+```bash
+curl http://localhost:8081/api/users
+```
+
+#### **Récupérer un utilisateur par ID**
+```bash
+curl http://localhost:8081/api/users/1
+```
+
+#### **Mettre à jour un utilisateur**
+```bash
+curl -X PUT http://localhost:8081/api/users/1 \
+  -H "Content-Type: application/json" \
+  -d '{"fullName": "John Updated", "email": "john.updated@example.com"}'
+```
+
+#### **Supprimer un utilisateur**
+```bash
+curl -X DELETE http://localhost:8081/api/users/1
+```
+
 ## Configuration avancée
 
 ### Pool de connexions
 
-Le projet utilise Apache Commons DBCP2 avec les paramètres suivants :
+Le projet utilise HikariCP avec les paramètres configurables via les variables d'environnement :
 
-- Taille initiale du pool: 5 connexions
-- Taille maximale du pool: 20 connexions
-- Taille maximale des connexions inactives: 10
-- Taille minimale des connexions inactives: 5
-- Timeout d'attente: 60 secondes
+- `DB_POOL_SIZE`: Taille maximale du pool (défaut: 10)
+- `DB_MIN_IDLE`: Nombre minimum de connexions inactives (défaut: 5)
+- `DB_CONNECTION_TIMEOUT`: Timeout de connexion (défaut: 30000ms)
+- `DB_IDLE_TIMEOUT`: Timeout d'inactivité (défaut: 600000ms)
+- `DB_MAX_LIFETIME`: Durée de vie maximale (défaut: 1800000ms)
 
 ### Performance
 
-- Batch processing activé pour Hibernate
-- Optimisation des requêtes SQL
-- Configuration du pool de connexions
+- Configuration optimisée d'Hibernate
+- Pool de connexions configurable
+- Support des profils Spring pour différents environnements
 
 ## Dépannage
 
@@ -147,7 +282,8 @@ Le projet utilise Apache Commons DBCP2 avec les paramètres suivants :
 
 1. **Erreur de connexion à la base de données**
    - Vérifier que PostgreSQL est démarré
-   - Vérifier les credentials dans application.properties
+   - Vérifier les variables d'environnement dans le fichier `.env`
+   - Vérifier que le fichier `.env` existe (copier depuis `.env.example`)
 
 2. **Problème de compilation**
    - Vérifier que Java 17 est installé
@@ -155,7 +291,35 @@ Le projet utilise Apache Commons DBCP2 avec les paramètres suivants :
 
 3. **Problème Docker**
    - Vérifier que Docker est démarré
+   - Vérifier que le fichier `.env` existe
    - Exécuter `docker-compose logs` pour voir les erreurs
+
+## Tests et Documentation
+
+### 🧪 **Tests Disponibles**
+
+- **Tests unitaires** : `src/test/java/` - Tests des composants isolés
+- **Tests d'intégration** : Tests avec base de données H2
+- **Configuration de test** : `application-test.properties`
+
+### 📚 **Documentation Technique**
+
+- **`REPOSITORY_ARCHITECTURE.md`** : Guide détaillé de l'architecture Repository
+- **API Documentation** : Format des réponses JSON et gestion d'erreurs
+- **Configuration** : Variables d'environnement et profils Spring
+
+### 🔧 **Commandes de Test**
+
+```bash
+# Exécuter tous les tests
+mvn test
+
+# Tests avec rapport de couverture
+mvn test jacoco:report
+
+# Tests d'intégration
+mvn verify
+```
 
 ## Contribution
 
@@ -168,4 +332,5 @@ Le projet utilise Apache Commons DBCP2 avec les paramètres suivants :
 ## Licence
 
 Ce projet est sous licence MIT.
+
 

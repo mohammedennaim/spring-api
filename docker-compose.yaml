@@ -5,10 +5,10 @@ services:
     image: postgres:16-alpine
     container_name: spring-postgres-db
     environment:
-      POSTGRES_DB: spring_db
-      POSTGRES_USER: user
-      POSTGRES_PASSWORD: password
-      POSTGRES_INITDB_ARGS: "--encoding=UTF-8 --lc-collate=C --lc-ctype=C"
+      POSTGRES_DB: ${POSTGRES_DB:-spring_db}
+      POSTGRES_USER: ${POSTGRES_USER:-user}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-password}
+      POSTGRES_INITDB_ARGS: ${POSTGRES_INITDB_ARGS:-"--encoding=UTF-8 --lc-collate=C --lc-ctype=C"}
     volumes:
       - pg_data:/var/lib/postgresql/data
       - ./init-scripts:/docker-entrypoint-initdb.d
@@ -30,11 +30,12 @@ services:
       dockerfile: Dockerfile
     container_name: spring-mvc-app
     environment:
-      SPRING_DATASOURCE_URL: "jdbc:postgresql://db:5432/spring_db"
-      SPRING_DATASOURCE_USERNAME: user
-      SPRING_DATASOURCE_PASSWORD: password
+      DATABASE_URL: "jdbc:postgresql://db:5432/${POSTGRES_DB:-spring_db}"
+      DATABASE_USERNAME: ${POSTGRES_USER:-user}
+      DATABASE_PASSWORD: ${POSTGRES_PASSWORD:-password}
       SPRING_PROFILES_ACTIVE: docker
-      JAVA_OPTS: "-Xms512m -Xmx1024m -Dfile.encoding=UTF-8"
+      JAVA_OPTS: ${JAVA_OPTS:-"-Xms512m -Xmx1024m -Dfile.encoding=UTF-8"}
+      SERVER_PORT: 8080
     ports:
       - "8081:8080"
     depends_on:
@@ -44,15 +45,16 @@ services:
     networks:
       - spring-network
     volumes:
+      - ./target/spring-mvc-rest-postgres.war:/usr/local/tomcat/webapps/ROOT.war
       - app_logs:/usr/local/tomcat/logs
 
   pgadmin:
     image: dpage/pgadmin4:8
     container_name: spring-pgadmin
     environment:
-      PGADMIN_DEFAULT_EMAIL: admin@example.com
-      PGADMIN_DEFAULT_PASSWORD: admin
-      PGADMIN_CONFIG_SERVER_MODE: 'False'
+      PGADMIN_DEFAULT_EMAIL: ${PGADMIN_DEFAULT_EMAIL:-admin@example.com}
+      PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_DEFAULT_PASSWORD:-admin}
+      PGADMIN_CONFIG_SERVER_MODE: ${PGADMIN_CONFIG_SERVER_MODE:-'False'}
     ports:
       - "5050:80"
     volumes:
